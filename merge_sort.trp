@@ -1,0 +1,35 @@
+import lists
+
+let (* Split list l at index i. *)
+    fun split i l =
+	let fun inner 0 list acc = (acc, list)
+	      | inner j (a::list) acc = inner (j - 1) list (a::acc)
+	      | inner j [] acc = ([], acc)
+	in inner i l []
+	end
+    (* Merge two sorted lists with the comparison function cmp. *)
+    fun merge cmp la lb =
+	let fun inner [] [] acc = reverse acc
+	      | inner (a::la') [] acc = inner la' [] (a::acc)
+	      | inner [] (b::lb') acc = inner [] lb' (b::acc)
+	      | inner (a::la') (b::lb') acc =
+		if (cmp a b) < 0
+		then inner la' (b::lb') (a::acc)
+		else inner (a::la') lb' (b::acc)
+	in inner la lb []
+	end
+    (* Sort the list l with the comparison function cmp. *)
+    fun sort cmp l =
+	let fun inner [] = []
+	      | inner (a::[]) = a::[]
+	      | inner l = 		       
+		let val len = length l
+		    val half = len / 2
+		    val (upper, lower) = split half l
+		in merge cmp (inner upper) (inner lower)
+		end
+	in inner l
+	end
+in sort
+end
+		

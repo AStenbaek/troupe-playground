@@ -1,0 +1,1 @@
+let fun odd x = x mod 2 = 1 in odd 13 end
