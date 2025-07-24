@@ -15,3 +15,9 @@ The container is named `troupe-playground`.
 
 ### `stop-container.sh`
 Will stop the running playground container.
+
+### `local.sh`
+Run the `local.sh` script in the container on the playground 
+file with the input name.
+For example, the command `./local.sh odd.trp`,
+will run the `odd.trp` file in the container.

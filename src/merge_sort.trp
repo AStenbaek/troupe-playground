@@ -13,7 +13,7 @@ let (* Split list l at index i. *)
 	      | inner (a::la') [] acc = inner la' [] (a::acc)
 	      | inner [] (b::lb') acc = inner [] lb' (b::acc)
 	      | inner (a::la') (b::lb') acc =
-		if (cmp a b) < 0
+		if cmp a b (* a < b *)
 		then inner la' (b::lb') (a::acc)
 		else inner (a::la') lb' (b::acc)
 	in inner la lb []
@@ -24,7 +24,7 @@ let (* Split list l at index i. *)
 	      | inner (a::[]) = a::[]
 	      | inner l = 		       
 		let val len = length l
-		    val half = len / 2
+		    val half = len div 2
 		    val (upper, lower) = split half l
 		in merge cmp (inner upper) (inner lower)
 		end
