@@ -1,8 +1,10 @@
 import lists
 
+datatype Atoms = NONE
+       
 let val empty = []
-    fun update s k v =
-	let fun inner [] _ false = (k, v)::s
+    fun put s k v =
+	let fun inner [] acc false = reverse ((k, v)::acc)
 	      | inner [] acc true = reverse acc
 	      | inner ((k',v')::s') acc b = 
 		if k = k'
@@ -10,8 +12,17 @@ let val empty = []
 		else inner s' ((k',v')::acc) b
 	in inner s [] false
 	end
+    fun get s k = lookup s k NONE
+    fun del s k =
+	let fun inner [] acc = reverse acc
+	      | inner ((k', v')::s') acc =
+		if k = k'
+		then inner s' acc
+		else inner s' ((k', v')::acc)
+	in inner s []
+	end
     fun reset _ = empty
-    val a = update empty 6 28
-    val b = update a 496 8128
-in lookup b 6 0
+    val a = put empty 6 28
+    val b = put a 496 8128
+in del b 6
 end
