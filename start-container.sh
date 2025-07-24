@@ -1,2 +1,1 @@
-#!/bin/sh
-docker run -d --rm -it -v $(pwd):/Troupe/playground --name troupe-playground troupe-master
+DOCKER_CLI_HINTS=false docker run -d --rm -it -v $(pwd)/src:/Troupe/playground --name troupe-playground troupe-master
