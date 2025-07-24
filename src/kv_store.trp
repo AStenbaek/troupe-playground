@@ -1,0 +1,17 @@
+import lists
+
+let val empty = []
+    fun update s k v =
+	let fun inner [] _ false = (k, v)::s
+	      | inner [] acc true = reverse acc
+	      | inner ((k',v')::s') acc b = 
+		if k = k'
+		then inner s' ((k, v)::acc) true
+		else inner s' ((k',v')::acc) b
+	in inner s [] false
+	end
+    fun reset _ = empty
+    val a = update empty 6 28
+    val b = update a 496 8128
+in lookup b 6 0
+end
