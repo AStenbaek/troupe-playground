@@ -1,6 +1,6 @@
 import lists
 
-datatype Atoms = NONE
+datatype Atoms = NONE | PUT | GET | DEL
        
 let val empty = []
     fun put s k v =
@@ -22,7 +22,20 @@ let val empty = []
 	in inner s []
 	end
     fun reset _ = empty
-    val a = put empty 6 28
-    val b = put a 496 8128
-in del b 6
+    fun main s = main (
+	    receive [
+		hn (PUT, k, v) => put s k v,
+		hn (GET, k, pid) => send (pid, get s k); s,
+		hn (DEL, k) => del s k
+	])
+in (* Testing *)
+    let val processA =
+	    spawn (fn () =>
+		      spawn (fn () => sleep 6000; exit (authority, 0));
+		   main empty)
+   in print processA;
+      send (processA, (PUT, 6, 28));
+      send (processA, (GET, 6, self()));
+      print (receive [ hn x => x ])
+   end
 end
