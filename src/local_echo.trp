@@ -1,0 +1,13 @@
+(* Simple local echo program to play with command line input. *)
+let val stdout = getStdout authority
+    fun output s = fwrite (stdout, s)
+    fun green s = "\x1b[32m" ^ s ^ "\x1b[0m"
+    fun main () =
+	let val _ = output (green ">>> ")
+	    val s = inputLine ()
+	in if s = "exit"
+	   then exit (authority, 0)
+	   else output (s ^ "\n"); main ()
+	end
+in main ()
+end

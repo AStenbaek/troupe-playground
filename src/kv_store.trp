@@ -29,13 +29,10 @@ let val empty = []
 		hn (DEL, k) => del s k
 	])
 in (* Testing *)
-    let val processA =
-	    spawn (fn () =>
-		      spawn (fn () => sleep 6000; exit (authority, 0));
-		   main empty)
-   in print processA;
-      send (processA, (PUT, 6, 28));
-      send (processA, (GET, 6, self()));
-      print (receive [ hn x => x ])
+    let val processA = spawn (fn () => main empty)
+    in send (processA, (PUT, 6, 28));
+       send (processA, (GET, 6, self()));
+       print (receive [ hn x => x ]);
+       exit (authority, 0)
    end
 end
