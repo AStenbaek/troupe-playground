@@ -78,6 +78,14 @@ let fun parse s =
 		end
 	in loop ()
 	end
-in main ()
+in let val parse_node = spawn (fn () => receive [ hn (s, pid) => send (pid, parse s) ])
+       val eval_node  = spawn (fn () => receive [ hn (e, pid) => send (pid, eval e) ])
+       val input = "8128 + 28 * 6"
+   in send (parse_node, (input, self()));
+      receive [ hn e => send (eval_node, (e, self()));
+		receive [ hn v => print v ]
+	      ];
+      exit (authority, 0)
+   end
 end
 
