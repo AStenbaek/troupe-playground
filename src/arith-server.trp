@@ -1,7 +1,9 @@
 let fun parse s =
-	let fun inner i acc =
+	let fun inner i acc prio =
 		let fun reduce (e2::bop::e1::acc) = (bop, e1, e2)::acc
 		      | reduce acc = acc
+		    fun full_reduce (e2::bop::e1::acc) = full_reduce (reduce (e2::bop::e1::acc))
+		      | full_reduce acc = acc
 		    fun parse_num i acc =
 			let fun f n = parse_num (i + 1) (acc * 10 + n)
 			in case substring (s, i, i + 1) of
@@ -19,15 +21,21 @@ let fun parse s =
 			end
 		    fun num_match n =
 			let val (num, i') = parse_num (i + 1) n
-			    val acc' = reduce (num::acc)
-			in inner i' acc'
+			    val acc' = num::acc
+			in inner i' acc' prio
 			end
 		in if strlen s <= i
-		   then case acc of e::[] => (e, i)
+		   then case full_reduce acc of e::[] => (e, i)
 		   else case substring (s, i, i + 1) of
-			    " " => inner (i + 1) acc
-			  | "+" => inner (i + 1) ("add"::acc)
-			  | "-" => inner (i + 1) ("sub"::acc)
+			    " " => inner (i + 1) acc prio
+			  | "+" => inner (i + 1) ("add"::(reduce acc)) 1
+			  | "-" => inner (i + 1) ("sub"::(reduce acc)) 1
+			  | "*" => if prio < 2
+				   then inner (i + 1) ("mul"::acc) 2
+				   else inner (i + 1) ("mul"::(reduce acc)) 2
+		          | "/" => if prio < 2
+				   then inner (i + 1) ("div"::acc) 2
+				   else inner (i + 1) ("div"::(reduce acc)) 2
 			  | "0" => num_match 0
 			  | "1" => num_match 1
 			  | "2" => num_match 2
@@ -38,13 +46,13 @@ let fun parse s =
 			  | "7" => num_match 7
 			  | "8" => num_match 8
 			  | "9" => num_match 9
-			  | "(" => let val (e, i') = inner (i + 1) []
-				       val acc' = reduce (e::acc)
-				   in inner i' acc'
+			  | "(" => let val (e, i') = inner (i + 1) [] 0
+				   in inner i' (e::acc) prio
 				   end
-			  | ")" => (case acc of e::[] => (e, i + 1)) 
+			  | ")" => (case full_reduce acc of e::[] => (e, i + 1)) 
 		end
-	in case inner 0 [] of (e,_) => e end
+	in case inner 0 [] 0 of (e, _) => e
+	end
     fun eval ("const", i) = i
       | eval (bop, e1, e2) =
 	let fun apply f =
@@ -54,6 +62,8 @@ let fun parse s =
 		end
 	in case bop of "add" => apply (fn v1 => fn v2 => v1 + v2)
 		     | "sub" => apply (fn v1 => fn v2 => v1 - v2)
+		     | "mul" => apply (fn v1 => fn v2 => v1 * v2)
+		     | "div" => apply (fn v1 => fn v2 => v1 div v2)
 	end
     fun main () =
 	let val stdout = getStdout authority
