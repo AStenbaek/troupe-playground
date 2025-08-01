@@ -1,0 +1,73 @@
+let fun parse s =
+	let fun inner i acc =
+		let fun reduce (e2::bop::e1::acc) = (bop, e1, e2)::acc
+		      | reduce acc = acc
+		    fun parse_num i acc =
+			let fun f n = parse_num (i + 1) (acc * 10 + n)
+			in case substring (s, i, i + 1) of
+			       "0" => f 0
+			     | "1" => f 1
+			     | "2" => f 2
+			     | "3" => f 3
+			     | "4" => f 4
+			     | "5" => f 5
+			     | "6" => f 6
+			     | "7" => f 7
+			     | "8" => f 8
+			     | "9" => f 9
+			     | _   => (("const", acc), i)
+			end
+		    fun num_match n =
+			let val (num, i') = parse_num (i + 1) n
+			    val acc' = reduce (num::acc)
+			in inner i' acc'
+			end
+		in if strlen s <= i
+		   then case acc of e::[] => (e, i)
+		   else case substring (s, i, i + 1) of
+			    " " => inner (i + 1) acc
+			  | "+" => inner (i + 1) ("add"::acc)
+			  | "-" => inner (i + 1) ("sub"::acc)
+			  | "0" => num_match 0
+			  | "1" => num_match 1
+			  | "2" => num_match 2
+			  | "3" => num_match 3
+			  | "4" => num_match 4
+			  | "5" => num_match 5
+			  | "6" => num_match 6
+			  | "7" => num_match 7
+			  | "8" => num_match 8
+			  | "9" => num_match 9
+			  | "(" => let val (e, i') = inner (i + 1) []
+				       val acc' = reduce (e::acc)
+				   in inner i' acc'
+				   end
+			  | ")" => (case acc of e::[] => (e, i + 1)) 
+		end
+	in case inner 0 [] of (e,_) => e end
+    fun eval ("const", i) = i
+      | eval (bop, e1, e2) =
+	let fun apply f =
+		let val v1 = eval e1
+		    val v2 = eval e2
+		in f v1 v2
+		end
+	in case bop of "add" => apply (fn v1 => fn v2 => v1 + v2)
+		     | "sub" => apply (fn v1 => fn v2 => v1 - v2)
+	end
+    fun main () =
+	let val stdout = getStdout authority
+	    fun output s = fwrite (stdout, s)
+	    fun green s = "\x1b[32m" ^ s ^ "\x1b[0m"
+	    fun loop () =
+		let val _ = output (green ">>> ")
+		    val s = inputLine ()
+		in if s = "exit"
+		   then exit (authority, 0)
+		   else (print (eval (parse s)); loop ())
+		end
+	in loop ()
+	end
+in main ()
+end
+
