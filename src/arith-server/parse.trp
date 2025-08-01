@@ -1,0 +1,58 @@
+let fun parse s =
+	let fun inner i acc prio =
+		let fun reduce (e2::bop::e1::acc) = (bop, e1, e2)::acc
+		      | reduce acc = acc
+		    fun full_reduce (e2::bop::e1::acc) = full_reduce (reduce (e2::bop::e1::acc))
+		      | full_reduce acc = acc
+		    fun parse_num i acc =
+			let fun f n = parse_num (i + 1) (acc * 10 + n)
+			in case substring (s, i, i + 1) of
+			       "0" => f 0
+			     | "1" => f 1
+			     | "2" => f 2
+			     | "3" => f 3
+			     | "4" => f 4
+			     | "5" => f 5
+			     | "6" => f 6
+			     | "7" => f 7
+			     | "8" => f 8
+			     | "9" => f 9
+			     | _   => (("const", acc), i)
+			end
+		    fun num_match n =
+			let val (num, i') = parse_num (i + 1) n
+			    val acc' = num::acc
+			in inner i' acc' prio
+			end
+		in if strlen s <= i
+		   then case full_reduce acc of e::[] => (e, i)
+		   else case substring (s, i, i + 1) of
+			    " " => inner (i + 1) acc prio
+			  | "+" => inner (i + 1) ("add"::(reduce acc)) 1
+			  | "-" => inner (i + 1) ("sub"::(reduce acc)) 1
+			  | "*" => if prio < 2
+				   then inner (i + 1) ("mul"::acc) 2
+				   else inner (i + 1) ("mul"::(reduce acc)) 2
+		          | "/" => if prio < 2
+				   then inner (i + 1) ("div"::acc) 2
+				   else inner (i + 1) ("div"::(reduce acc)) 2
+			  | "0" => num_match 0
+			  | "1" => num_match 1
+			  | "2" => num_match 2
+			  | "3" => num_match 3
+			  | "4" => num_match 4
+			  | "5" => num_match 5
+			  | "6" => num_match 6
+			  | "7" => num_match 7
+			  | "8" => num_match 8
+			  | "9" => num_match 9
+			  | "(" => let val (e, i') = inner (i + 1) [] 0
+				   in inner i' (e::acc) prio
+				   end
+			  | ")" => (case full_reduce acc of e::[] => (e, i + 1)) 
+		end
+	in case inner 0 [] 0 of (e, _) => e
+	end
+    fun main () = receive [ hn (s, pid) => send (pid, parse s) ]; main ()
+in register ("parse", self(), authority); main ()
+end

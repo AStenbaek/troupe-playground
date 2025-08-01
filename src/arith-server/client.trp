@@ -1,0 +1,25 @@
+let fun main parse_node eval_node =
+	let val stdout = getStdout authority
+	    fun output s = fwrite (stdout, s)
+	    fun green s = "\x1b[32m" ^ s ^ "\x1b[0m"
+	    fun loop () =
+		let val _ = output (green ">>> ")
+		    val s = let val s' = inputLine ()
+				val _ = blockdecl authority
+			    in declassify (s', authority, `{}`)
+			    end
+		in if s = "exit"
+		   then exit (authority, 0)
+		   else let val _ = send (parse_node, (s, self()))
+			    val e = receive [ hn e => e ]
+			    val _ = send (eval_node, (e, self()))
+			    val _ = receive [ hn v => print v ]
+			in loop ()
+			end
+		end
+	in loop ()
+	end
+in let val parse_node = whereis ("@parse-server", "parse")
+       val eval_node  = whereis ("@eval-server", "eval")
+   in main parse_node eval_node
+end

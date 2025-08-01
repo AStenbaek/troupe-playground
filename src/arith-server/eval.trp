@@ -1,0 +1,15 @@
+let fun eval ("const", i) = i
+      | eval (bop, e1, e2) =
+	let fun apply f =
+		let val v1 = eval e1
+		    val v2 = eval e2
+		in f v1 v2
+		end
+	in case bop of "add" => apply (fn v1 => fn v2 => v1 + v2)
+		     | "sub" => apply (fn v1 => fn v2 => v1 - v2)
+		     | "mul" => apply (fn v1 => fn v2 => v1 * v2)
+		     | "div" => apply (fn v1 => fn v2 => v1 div v2)
+	end
+    fun main () = receive [ hn (e, pid) => send (pid, eval e) ]; main ()
+in register ("eval", self(), authority); main ()
+end
