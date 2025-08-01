@@ -65,27 +65,32 @@ let fun parse s =
 		     | "mul" => apply (fn v1 => fn v2 => v1 * v2)
 		     | "div" => apply (fn v1 => fn v2 => v1 div v2)
 	end
-    fun main () =
+    fun parse_main () = receive [ hn (s, pid) => send (pid, parse s)]; parse_main()
+    fun eval_main () = receive [ hn (e, pid) => send (pid, eval e) ]; eval_main ()
+    fun main parse_node eval_node () =
 	let val stdout = getStdout authority
 	    fun output s = fwrite (stdout, s)
 	    fun green s = "\x1b[32m" ^ s ^ "\x1b[0m"
 	    fun loop () =
 		let val _ = output (green ">>> ")
-		    val s = inputLine ()
+		    val s = let val s' = inputLine ()
+				val _ = blockdecl authority
+			    in declassify (s', authority, `{}`)
+			    end
 		in if s = "exit"
 		   then exit (authority, 0)
-		   else (print (eval (parse s)); loop ())
+		   else let val _ = send (parse_node, (s, self()))
+			    val e = receive [ hn e => e ]
+			    val _ = send (eval_node, (e, self()))
+			    val _ = receive [ hn v => print v ]
+			in loop ()
+			end
 		end
 	in loop ()
 	end
-in let val parse_node = spawn (fn () => receive [ hn (s, pid) => send (pid, parse s) ])
-       val eval_node  = spawn (fn () => receive [ hn (e, pid) => send (pid, eval e) ])
-       val input = "8128 + 28 * 6"
-   in send (parse_node, (input, self()));
-      receive [ hn e => send (eval_node, (e, self()));
-		receive [ hn v => print v ]
-	      ];
-      exit (authority, 0)
+in let val parse_node = spawn parse_main
+       val eval_node = spawn eval_main
+   in main parse_node eval_node ()
    end
 end
 
