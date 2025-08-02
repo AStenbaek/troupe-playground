@@ -12,6 +12,7 @@ RUN make all
 
 FROM base
 ENV TROUPE=/Troupe
+ENV PATH=$TROUPE/bin:$PATH
 WORKDIR $TROUPE
 COPY --from=builder $TROUPE $TROUPE
 CMD ["bash"]
