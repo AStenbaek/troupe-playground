@@ -80,7 +80,7 @@ COPY --from=builder /Troupe/node_modules/ms /relay/node_modules/ms
 COPY --from=builder /Troupe/node_modules/is-plain-obj /relay/node_modules/is-plain-obj
 COPY --from=builder /Troupe/node_modules/truncate-utf8-bytes /relay/node_modules/truncate-utf8-bytes
 
+COPY relay.sh relay.sh
 RUN mkdir -p keys
-RUN node mkid.mjs --privkeyfile=keys/relay.priv --idfile=keys/relay.id
-CMD ["node", "relay.mjs"]
+ENTRYPOINT ["sh", "relay.sh"]
 
