@@ -1,0 +1,38 @@
+name: troupe-multi
+
+services:
+  init:
+    image: troupe-key-make
+    command: /bin/sh /key-maker/key-make.sh
+    volumes:
+      - relay-key:/key-maker/relay
+      - server-key:/key-maker/echo-server
+      - client-key:/key-maker/echo-client
+    restart: no
+    
+  relay:
+    image: troupe-relay
+    networks:
+      - internal_only
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - relay-key:/relay/keys
+      
+#  parser:
+#    image: troupe-integrity
+#    depends_on:
+#      init:
+#        condition: service_completed_successfully
+
+networks:
+  internal_only:
+    driver: bridge # Use the standard container network driver.
+    internal: true # Make the compose network completely isolated.
+
+volumes:
+  relay-key:
+  server-key:
+  client-key:
+    

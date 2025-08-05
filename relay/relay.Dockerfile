@@ -7,7 +7,6 @@ WORKDIR /relay
 RUN apk add --no-cache nodejs
 COPY --from=builder /Troupe/p2p-tools/relay /relay
 COPY --from=builder /Troupe/p2p-tools/built/mkid.mjs /relay
-#COPY --from=builder /Troupe/node_modules/libp2p /relay/node_modules/libp2p
 COPY --from=builder /Troupe/node_modules/@libp2p /relay/node_modules/@libp2p
 COPY --from=builder /Troupe/node_modules/uint8arrays /relay/node_modules/uint8arrays
 COPY --from=builder /Troupe/node_modules/yargs /relay/node_modules/yargs
