@@ -3,7 +3,24 @@ name: troupe-multi-isolated
 services:
   init:
     image: troupe-key-make
-    command: /bin/sh /key-maker/key-make.sh
+    pull_policy: never # Image does not exist on dockerhub.
+    build:
+      context: ../key-maker
+      dockerfile: key-maker.Dockerfile
+    command: > # Create indentities and distribute to the respective services.
+      /bin/sh -c 'mkdir -p echo-server
+                  mkdir -p echo-client
+                  node /key-maker/mkid.mjs --privkeyfile=keys/relay.priv --idfile=keys/relay.id
+                  node /key-maker/mkid.mjs --outfile=keys/echo-server.json
+                  node /key-maker/mkid.mjs --outfile=keys/echo-client.json
+                  node /key-maker/mkaliases.js --include=keys/echo-server.json --include=keys/echo-client.json --outfile=keys/aliases.json
+                  cp keys/relay.priv /key-maker/relay/
+                  cp keys/relay.id /key-maker/relay/
+                  cp keys/relay.id /key-maker/echo-server/
+                  cp keys/echo-server.json /key-maker/echo-server/
+                  cp keys/relay.id /key-maker/echo-client/
+                  cp keys/echo-client.json /key-maker/echo-client/
+                  cp keys/aliases.json /key-maker/echo-client/'
     volumes:
       - relay-key:/key-maker/relay
       - server-key:/key-maker/echo-server

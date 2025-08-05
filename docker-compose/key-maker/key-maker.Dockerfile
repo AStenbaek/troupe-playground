@@ -28,7 +28,5 @@ COPY --from=builder /Troupe/node_modules/require-directory /key-maker/node_modul
 COPY key-make.sh key-make.sh
 
 RUN mkdir -p relay
-RUN mkdir -p echo-server
-RUN mkdir -p echo-client
 RUN mkdir -p keys
-ENTRYPOINT ["sh", "/key-maker/key-make.sh"]
+CMD ["sh", "/key-maker/key-make.sh"]
