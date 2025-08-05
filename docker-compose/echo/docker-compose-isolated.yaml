@@ -1,4 +1,4 @@
-name: troupe-multi
+name: troupe-multi-isolated
 
 services:
   init:
@@ -9,23 +9,29 @@ services:
       - server-key:/key-maker/echo-server
       - client-key:/key-maker/echo-client
     restart: no
-    
-  relay:
-    image: troupe-relay
+
+  echo-server:
+    image: troupe-integrity
     networks:
       - internal_only
     depends_on:
       init:
         condition: service_completed_successfully
     volumes:
-      - relay-key:/relay/keys
-      
-#  parser:
-#    image: troupe-integrity
-#    depends_on:
-#      init:
-#        condition: service_completed_successfully
-
+      - server-key:/Troupe/ids
+    command: /bin/sh -c "/Troupe/network.sh /Troupe/examples/network/echo/echo-server.trp --id=ids/echo-server.json"
+    
+  echo-client:
+    image: troupe-integrity
+    networks:
+      - internal_only
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - client-key:/Troupe/ids
+    command: /bin/sh -c "/Troupe/network.sh /Troupe/examples/network/echo/echo-client.trp --id=ids/echo-client.json --aliases=ids/aliases.json"
+    
 networks:
   internal_only:
     driver: bridge # Use the standard container network driver.

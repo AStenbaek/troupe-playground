@@ -1,0 +1,57 @@
+name: troupe-multi
+
+services:
+  init:
+    image: troupe-key-make
+    command: /bin/sh /key-maker/key-make.sh
+    volumes:
+      - relay-key:/key-maker/relay
+      - server-key:/key-maker/echo-server
+      - client-key:/key-maker/echo-client
+    restart: no
+    
+  relay:
+    image: troupe-relay
+    networks:
+      - internal_only
+    ports:
+      - 5555:5555
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - relay-key:/relay/keys
+    command: node relay.mjs
+
+  echo-server:
+    image: troupe-integrity
+    networks:
+      - internal_only
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - server-key:/Troupe/ids
+    command: /bin/sh -c "/Troupe/network.sh /Troupe/examples/network/echo/echo-server.trp --id=ids/echo-server.json --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)"
+
+  echo-client:
+    image: troupe-integrity
+    networks:
+      - internal_only
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - client-key:/Troupe/ids
+    command: /bin/sh -c "/Troupe/network.sh /Troupe/examples/network/echo/echo-client.trp --id=ids/echo-client.json --aliases=ids/aliases.json --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)"
+    
+networks:
+  internal_only:
+    driver: bridge # Use the standard container network driver.
+    internal: true # Make the compose network completely isolated.
+
+volumes:
+  relay-key:
+  server-key:
+  client-key:
+    

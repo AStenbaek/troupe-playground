@@ -81,5 +81,5 @@ COPY --from=builder /Troupe/node_modules/truncate-utf8-bytes /relay/node_modules
 
 COPY relay.sh relay.sh
 RUN mkdir -p keys
-ENTRYPOINT ["sh", "relay.sh"]
+CMD ["sh", "relay.sh"]
 
