@@ -28,6 +28,7 @@ services:
     restart: no
 
   echo-server:
+    container_name: server
     image: troupe-integrity
     networks:
       - internal_only
@@ -39,6 +40,7 @@ services:
     command: /bin/sh -c "/Troupe/network.sh /Troupe/examples/network/echo/echo-server.trp --id=ids/echo-server.json"
     
   echo-client:
+    container_name: client
     image: troupe-integrity
     networks:
       - internal_only

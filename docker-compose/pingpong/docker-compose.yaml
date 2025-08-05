@@ -32,6 +32,7 @@ services:
     restart: no
     
   relay: # Troupe relay service in the compose network.
+    container_name: relay
     image: troupe-relay
     pull_policy: never # Image does not exist on dockerhub.
     build: # Build the image if it does not exist.
@@ -47,6 +48,7 @@ services:
     command: node relay.mjs
 
   pingpong-listener:
+    container_name: listener
     image: troupe-integrity
     pull_policy: never # Image does not exist on dockerhub.
     build: # Build the image if it does not exist.
@@ -68,6 +70,7 @@ services:
                   --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)'
 
   pingpong-dialer:
+    container_name: dialer
     image: troupe-integrity
     pull_policy: never # Image does not exist on dockerhub.
     build: # Build the image if it does not exist.
