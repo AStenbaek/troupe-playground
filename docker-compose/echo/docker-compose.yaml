@@ -1,23 +1,44 @@
 name: troupe-multi
 
 services:
+  # The init service generates keys and ids for the services.
   init:
     image: troupe-key-make
-    command: /bin/sh /key-maker/key-make.sh
+    pull_policy: never # Image does not exist on dockerhub.
+    build:
+      context: key-maker
+      dockerfile: key-maker.Dockerfile
+    command: # Create indentities and distribute to the respective services.
+      - node /key-maker/mkid.mjs --privkeyfile=keys/relay.priv --idfile=keys/relay.id
+      - node /key-maker/mkid.mjs --outfile=keys/echo-server.json
+      - node /key-maker/mkid.mjs --outfile=keys/echo-client.json
+      - node /key-maker/mkaliases.js --include=keys/echo-server.json --include=keys/echo-client.json --outfile=keys/aliases.json
+      # Relay needs its private key and id
+      - cp keys/relay.priv /key-maker/relay/
+      - cp keys/relay.id /key-maker/relay/
+      # Echo server requires its own id as well as the id of the relay.
+      - cp keys/relay.id /key-maker/echo-server/
+      - cp keys/echo-server.json /key-maker/echo-server/
+      # Echo client requires its own id, the relay id, and the alias for the server.
+      - cp keys/relay.id /key-maker/echo-client/
+      - cp keys/echo-client.json /key-maker/echo-client/
+      - cp keys/aliases.json /key-maker/echo-client/
     volumes:
       - relay-key:/key-maker/relay
       - server-key:/key-maker/echo-server
       - client-key:/key-maker/echo-client
     restart: no
     
-  relay:
+  relay: # Troupe relay service in the compose network.
     image: troupe-relay
-    networks:
+    pull_policy: never # Image does not exist on dockerhub.
+    build: # Build the image if it does not exist.
+      context: ../../relay
+      dockerfile: relay.Dockerfile
+    networks: # Restrict to the isolated network.
       - internal_only
-    ports:
-      - 5555:5555
     depends_on:
-      init:
+      init: # Only start after keys and ids are created.
         condition: service_completed_successfully
     volumes:
       - relay-key:/relay/keys
@@ -25,33 +46,47 @@ services:
 
   echo-server:
     image: troupe-integrity
-    networks:
+    pull_policy: never # Image does not exist on dockerhub.
+    build: # Build the image if it does not exist.
+      dockerfile: ../../dev-integrity.Dockerfile
+    networks: # Restrict to the isolated network.
       - internal_only
     depends_on:
-      init:
+      init: # Only start after keys and ids are created.
         condition: service_completed_successfully
     volumes:
       - server-key:/Troupe/ids
-    command: /bin/sh -c "/Troupe/network.sh /Troupe/examples/network/echo/echo-server.trp --id=ids/echo-server.json --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)"
+    command: > # Run the echo server. Note the relay has the dns "relay".
+      /bin/sh -c '/Troupe/network.sh\
+                  /Troupe/examples/network/echo/echo-server.trp\
+                  --id=ids/echo-server.json\
+                  --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)'
 
   echo-client:
     image: troupe-integrity
-    networks:
+    pull_policy: never # Image does not exist on dockerhub.
+    build: # Build the image if it does not exist.
+      dockerfile: ../../dev-integrity.Dockerfile
+    networks: # Restrict to the isolated network.
       - internal_only
     depends_on:
-      init:
+      init: # Only start after keys and ids are created.
         condition: service_completed_successfully
     volumes:
       - client-key:/Troupe/ids
-    command: /bin/sh -c "/Troupe/network.sh /Troupe/examples/network/echo/echo-client.trp --id=ids/echo-client.json --aliases=ids/aliases.json --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)"
+    command: > # Run the echo client.
+      /bin/sh -c '/Troupe/network.sh\
+                  /Troupe/examples/network/echo/echo-client.trp\
+                  --id=ids/echo-client.json --aliases=ids/aliases.json\
+                  --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)'
     
 networks:
-  internal_only:
+  internal_only: # Network for isolating the composed containers.
     driver: bridge # Use the standard container network driver.
     internal: true # Make the compose network completely isolated.
 
 volumes:
-  relay-key:
-  server-key:
-  client-key:
+  relay-key:  # Volume for relay resources.
+  server-key: # Volume for server resources.
+  client-key: # Volume for client resources.
     
