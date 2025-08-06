@@ -1,4 +1,4 @@
-name: troupe-pingpong-multi
+name: troupe-parallel-multi
 
 services:
   # The init service generates keys and ids for the services.
@@ -8,27 +8,34 @@ services:
     build:
       context: ../key-maker
       dockerfile: key-maker.Dockerfile
-    command: > # Create indentities and distribute to the respective services.
-      /bin/sh -c 'mkdir -p pingpong-dialer
-                  mkdir -p pingpong-listener
+    command: >- # Create indentities and distribute to the respective services.
+      /bin/sh -c 'mkdir -p one
+                  mkdir -p two
+                  mkdir -p three
                   node /key-maker/mkid.mjs --privkeyfile=keys/relay.priv --idfile=keys/relay.id
-                  node /key-maker/mkid.mjs --outfile=keys/pingpong-listener.json
-                  node /key-maker/mkid.mjs --outfile=keys/pingpong-dialer.json
-                  node /key-maker/mkaliases.js --include=keys/pingpong-listener.json\
-                                               --include=keys/pingpong-dialer.json\
+                  node /key-maker/mkid.mjs --outfile=keys/one.json
+                  node /key-maker/mkid.mjs --outfile=keys/two.json
+                  node /key-maker/mkid.mjs --outfile=keys/three.json
+                  node /key-maker/mkaliases.js --include=keys/one.json\
+                                               --include=keys/two.json\
+                                               --include=keys/three.json\
                                                --outfile=keys/aliases.json
                   cp keys/relay.priv /key-maker/relay/
                   cp keys/relay.id /key-maker/relay/
-                  cp keys/relay.id /key-maker/pingpong-listener/
-                  cp keys/pingpong-listener.json /key-maker/pingpong-listener/
-                  cp keys/aliases.json /key-maker/pingpong-listener/
-                  cp keys/relay.id /key-maker/pingpong-dialer/
-                  cp keys/pingpong-dialer.json /key-maker/pingpong-dialer/
-                  cp keys/aliases.json /key-maker/pingpong-dialer/'
+                  cp keys/relay.id /key-maker/three/
+                  cp keys/three.json /key-maker/three/
+                  cp keys/aliases.json /key-maker/three/
+                  cp keys/relay.id /key-maker/two/
+                  cp keys/two.json /key-maker/two/
+                  cp keys/aliases.json /key-maker/two/
+                  cp keys/relay.id /key-maker/one/
+                  cp keys/one.json /key-maker/one/
+                  cp keys/aliases.json /key-maker/one/'
     volumes:
       - relay-key:/key-maker/relay
-      - listener-key:/key-maker/pingpong-listener
-      - dialer-key:/key-maker/pingpong-dialer
+      - one-key:/key-maker/one
+      - two-key:/key-maker/two
+      - three-key:/key-maker/three
     restart: no
     
   relay: # Troupe relay service in the compose network.
@@ -49,8 +56,8 @@ services:
       - relay-key:/relay/keys
     command: node relay.mjs
 
-  pingpong-listener:
-    container_name: listener
+  three:
+    container_name: three
     image: troupe-integrity
     pull_policy: never # Image does not exist on dockerhub.
     build: # Build the image if it does not exist.
@@ -61,18 +68,36 @@ services:
       init: # Only start after keys and ids are created.
         condition: service_completed_successfully
     volumes:
-      - listener-key:/Troupe/ids
-    command: > # Run the echo server. Note the relay has the dns "relay".
+      - three-key:/Troupe/ids
+    command: >-
       /bin/sh -c '/Troupe/network.sh\
-                  /Troupe/examples/network/pingpong/zero.trp\
-                  --id=/Troupe/ids/pingpong-listener.json\
+                  /Troupe/examples/network/parallel/zero.trp\
+                  --id=/Troupe/ids/three.json\
                   --rspawn=true\
                   --aliases=/Troupe/ids/aliases.json\
                   --stdiolev={}\
                   --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)'
 
-  pingpong-dialer:
-    container_name: dialer
+  two:
+    container_name: two
+    image: troupe-integrity
+    pull_policy: never
+    networks:
+      - internal_only
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - two-key:/Troupe/ids
+    command: >-
+      /bin/sh -c '/Troupe/network.sh\
+                  /Troupe/examples/network/parallel/two.trp\
+                  --id=/Troupe/ids/two.json\
+                  --aliases=/Troupe/ids/aliases.json\
+                  --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)' 
+                  
+  one:
+    container_name: one
     image: troupe-integrity
     pull_policy: never # Image does not exist on dockerhub.
     build: # Build the image if it does not exist.
@@ -83,11 +108,15 @@ services:
       init: # Only start after keys and ids are created.
         condition: service_completed_successfully
     volumes:
-      - dialer-key:/Troupe/ids
-    command: > # Run the echo client.
-      /bin/sh -c '/Troupe/network.sh\
-                  /Troupe/examples/network/pingpong/p2ppingpong.trp\
-                  --id=ids/pingpong-dialer.json --aliases=ids/aliases.json\
+      - one-key:/Troupe/ids
+    command: >-
+      /bin/sh -c 'getent hosts relay
+                  /Troupe/network.sh\
+                  /Troupe/examples/network/parallel/zero.trp\
+                  --id=ids/one.json\
+                  --rspawn=true\
+                  --aliases=ids/aliases.json\
+                  --stdiolev={}\
                   --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)'
     
 networks:
@@ -97,6 +126,7 @@ networks:
 
 volumes:
   relay-key:  # Volume for relay resources.
-  dialer-key: # Volume for dialer resources.
-  listener-key: # Volume for listener resources.
+  one-key:
+  two-key:
+  three-key: 
     
