@@ -1,23 +1,29 @@
 # Troupe playground
-This setup uses a docker container for running Troupe.
+This setup uses a docker container for running Troupe code
+from the `src` directory.
 
-## Shell scripts
+The `docker-compose` folder contains examples of running
+Troupe nodes in an isolated network using docker compose.
 
-### `build-image.sh`
-This script creates a docker image from the master branch
-on the Troupe repository.
-The image will be tagged `troupe-master`.
+## Makefile and scripts
 
-### `start-container.sh`
-Will start the docker container and mount the `src` folder,
-so the files in `src` are available in the image.
-The container is named `troupe-playground`.
+### `make build-master`
+Builds a Troupe container image from the `master` branch.
 
-### `stop-container.sh`
-Will stop the running playground container.
+### `make start-master`
+Start the `master` branch Troupe container.
+
+### `make build-dev`
+Builds a Troupe container image from the `dev-integrity` branch.
+
+### `make start-dev`
+Starts the `dev-integrity` Troupe container.
+
+### `make stop`
+Stop the active Troupe container.
 
 ### `local.sh`
 Run the `local.sh` script in the container on the playground 
-file with the input name.
+file from the `src` folder.
 For example, the command `./local.sh odd.trp`,
 will run the `odd.trp` file in the container.
