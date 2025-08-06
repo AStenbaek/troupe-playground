@@ -1,0 +1,118 @@
+name: troupe-arith-service
+
+services:
+  # The init service generates keys and identifiers for the services.
+  init:
+    image: troupe-key-make
+    pull_policy: never # Image does not exist on dockerhub.
+    build:
+      context: ../key-maker
+      dockerfile: key-maker.Dockerfile
+    volumes:
+      - relay-volume:/key-maker/relay
+      - eval-volume:/key-maker/eval
+      - parse-volume:/key-maker/parse
+      - client-volume:/key-maker/client
+    command: >-
+      /bin/sh -c 'mkdir -p eval
+                  mkdir -p parse
+                  mkdir -p client
+                  node mkid.mjs --privkeyfile=keys/relay.priv --idfile=keys/relay.id
+                  node mkid.mjs --outfile=keys/eval-server.json
+                  node mkid.mjs --outfile=keys/parse-server.json
+                  node mkaliases.js --include=keys/eval-server.json\
+                                    --include=keys/parse-server.json\
+                                    --outfile=keys/aliases.json
+                  cp keys/relay.priv relay/
+                  cp keys/relay.id relay/
+                  cp keys/relay.id eval/
+                  cp keys/relay.id parse/
+                  cp keys/relay.id client/
+                  cp keys/eval-server.json eval/
+                  cp keys/parse-server.json parse/
+                  cp keys/aliases.json client/'
+
+  relay: # Troupe relay service in the compose network.
+    container_name: relay
+    image: troupe-relay
+    pull_policy: never
+    build:
+      context: ../../relay
+      dockerfile: relay.Dockerfile
+    networks:
+      - internal_only
+    ports:
+      - 5555:5555
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - relay-volume:/relay/keys
+    command: node relay.mjs
+
+  eval:
+    container_name: eval
+    image: troupe-integrity
+    pull_policy: never
+    networks:
+      - internal_only
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - eval-volume:/Troupe/ids
+      - ../../src/arith-server:/Troupe/arith-server
+    command: >-
+      /bin/sh -c '/Troupe/network.sh\
+                  /Troupe/arith-server/eval.trp\
+                  --id=/Troupe/ids/eval-server.json\
+                  --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)'
+
+  parse:
+    container_name: parse
+    image: troupe-integrity
+    pull_policy: never
+    networks:
+      - internal_only
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - parse-volume:/Troupe/ids
+      - ../../src/arith-server:/Troupe/arith-server
+    command: >-
+      /bin/sh -c '/Troupe/network.sh\
+                  /Troupe/arith-server/parse.trp\
+                  --id=/Troupe/ids/parse-server.json\
+                  --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)'
+
+  client:
+    container_name: client
+    image: troupe-integrity
+    pull_policy: never
+    stdin_open: true
+    tty: true
+    networks:
+      - internal_only
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - client-volume:/Troupe/ids
+      - ../../src/arith-server:/Troupe/arith-server
+    command: >-
+      /bin/sh -c '/Troupe/network.sh\
+                  /Troupe/arith-server/client.trp\
+                  --aliases=/Troupe/ids/aliases.json\
+                  --relay=/dns4/relay/tcp/5555/ws/p2p/$(cat ids/relay.id)'
+                  
+networks:
+  internal_only:
+    driver: bridge
+    internal: true
+      
+volumes:
+  relay-volume:
+  eval-volume:
+  parse-volume:
+  client-volume:

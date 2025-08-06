@@ -110,8 +110,7 @@ services:
     volumes:
       - one-key:/Troupe/ids
     command: >-
-      /bin/sh -c 'getent hosts relay
-                  /Troupe/network.sh\
+      /bin/sh -c '/Troupe/network.sh\
                   /Troupe/examples/network/parallel/zero.trp\
                   --id=ids/one.json\
                   --rspawn=true\

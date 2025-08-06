@@ -22,4 +22,5 @@ let fun main parse_node eval_node =
 in let val parse_node = whereis ("@parse-server", "parse")
        val eval_node  = whereis ("@eval-server", "eval")
    in main parse_node eval_node
+   end
 end
